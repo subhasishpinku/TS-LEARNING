@@ -18,8 +18,9 @@ const MyTheme = {
 }
 const Navigator: FC<Props> = (props) => {
   const authState =  useSelector(getAuthState)
-  console.log(authState);
-   const loggedIn = true;
+   const loggedIn = authState.profile ? true : false;
+   console.log(authState);
+
   return (
     <NavigationContainer
       theme={MyTheme}>

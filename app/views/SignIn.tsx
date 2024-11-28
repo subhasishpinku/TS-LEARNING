@@ -14,11 +14,14 @@ import axios from "axios";
 import { showMessage } from "react-native-flash-message";
 import { newUserSchema, signInSchema } from "./SignUp";
 import client from "app/api/client";
+import { useDispatch } from "react-redux";
+import { updateAuthState } from "app/store/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Props { }
 export interface SignInRes {
      message: string;
-    profile: {
+     profile: {
         id: string,
         name: string,
         email: string,
@@ -27,13 +30,14 @@ export interface SignInRes {
     };
     tokens: {
         refresh: string;
-        access: string;
+        acess: string;
     };
 }
 const SignIn: FC<Props> = (props) => {
     const { navigate } = useNavigation<NavigationProp<AuthStackParamList>>()
     const [userInfo, setUserInfo] = useState({ name: '', email: '', password: '', });
     const [busy, setBusy] = useState(false)
+    const dispatch = useDispatch()
     const { email, password } = userInfo
 
 
@@ -41,7 +45,6 @@ const SignIn: FC<Props> = (props) => {
         const { values, error } = await yupValidate(signInSchema, userInfo);
         if (error) return showMessage({ message: error, type: 'danger' });
         setBusy(true)
-
         const res = await runAxiosAsync<SignInRes>(
             client.post("/auth/sign-in", values)
         );
@@ -52,8 +55,12 @@ const SignIn: FC<Props> = (props) => {
         if (res) {
             showMessage({ message: "Sign-in successful!", type: 'success' });
             console.log("Signed in profile:", res.profile);
-            console.log("Access token:", res.tokens.access);
+            console.log("Access token:", res.tokens.acess);
             // Handle navigation or token storage here
+            await AsyncStorage.setItem("access-token", res.tokens.acess)
+            await AsyncStorage.setItem("refresh-token", res.tokens.refresh)
+
+            dispatch(updateAuthState({profile: res.profile, pending: false}))
         } else {
             showMessage({ message: "Sign-in failed. Please try again.", type: 'danger' });
         }
@@ -64,6 +71,7 @@ const SignIn: FC<Props> = (props) => {
         setUserInfo({ ...userInfo, [name]: text });
         const { email, password } = userInfo
     }
+    
     return (
         // <KeyboardAvoidingView
         //  behavior={Platform.OS=='ios'? 'padding' : 'height'}
