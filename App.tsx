@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Modal, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import SignIn from '@views/SignIn';
 import React, { FC } from "react";
 import { Platform, StatusBar as RNStatusBar } from "react-native";

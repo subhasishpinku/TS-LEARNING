@@ -2,7 +2,7 @@ import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from ".";
 
 
-type Profile = {
+export type Profile = {
     id: string;
     email: string;
     name: string;
