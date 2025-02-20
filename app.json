@@ -6,8 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "experiments":{
-     "tsconfigPaths" : true
+    "experiments": {
+      "tsconfigPaths": true
     },
     "splash": {
       "image": "./assets/splash.png",
@@ -21,10 +21,27 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.subhasishsingha.scmapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you add them to products."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3c49dfe3-021c-44b6-bef7-83e9d38f9d6b"
+      }
     }
   }
 }

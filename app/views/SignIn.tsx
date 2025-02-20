@@ -17,11 +17,12 @@ import client from "app/api/client";
 import { useDispatch } from "react-redux";
 import { updateAuthState } from "app/store/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import useAuth from "app/hooks/useAuth";
 
 interface Props { }
 export interface SignInRes {
-     message: string;
-     profile: {
+    message: string;
+    profile: {
         id: string,
         name: string,
         email: string,
@@ -40,38 +41,41 @@ const SignIn: FC<Props> = (props) => {
     const dispatch = useDispatch()
     const { email, password } = userInfo
 
+    const { signIn } = useAuth()
 
     const handleSubmit = async () => {
         const { values, error } = await yupValidate(signInSchema, userInfo);
         if (error) return showMessage({ message: error, type: 'danger' });
-        setBusy(true)
-        const res = await runAxiosAsync<SignInRes>(
-            client.post("/auth/sign-in", values)
-        );
+        if (values) signIn(values);
+        // setBusy(true)
+        // const res = await   runAxiosAsync<SignInRes>(
+        //     client.post("/auth/sign-in", values)
+        // );
 
         // console.log(res)
         // if (res?.message) 
         //     showMessage({ message: res.message, type: 'success' });
-        if (res) {
-            showMessage({ message: "Sign-in successful!", type: 'success' });
-            console.log("Signed in profile:", res.profile);
-            console.log("Access token:", res.tokens.acess);
-            // Handle navigation or token storage here
-            await AsyncStorage.setItem("access-token", res.tokens.acess)
-            await AsyncStorage.setItem("refresh-token", res.tokens.refresh)
+        // if (res) {
+        //     showMessage({ message: "Sign-in successful!", type: 'success' });
+        //     console.log("Signed in profile:", res.profile);
+        //     console.log("Access token:", res.tokens.acess);
+        //     // Handle navigation or token storage here
+        //     await AsyncStorage.setItem("access-token", res.tokens.acess)
+        //     await AsyncStorage.setItem("refresh-token", res.tokens.refresh)
 
-            dispatch(updateAuthState({profile: res.profile, pending: false}))
-        } else {
-            showMessage({ message: "Sign-in failed. Please try again.", type: 'danger' });
-        }
+        //     dispatch(updateAuthState({profile: res.profile, pending: false}))
+        // } else {
+        //     showMessage({ message: "Sign-in failed. Please try again.", type: 'danger' });
+        // }
 
-        setBusy(false)
+        // setBusy(false)
     };
+
     const handleChange = (name: string) => (text: string) => {
         setUserInfo({ ...userInfo, [name]: text });
-        const { email, password } = userInfo
-    }
-    
+        // const { email, password } = userInfo;
+    };
+
     return (
         // <KeyboardAvoidingView
         //  behavior={Platform.OS=='ios'? 'padding' : 'height'}
@@ -124,7 +128,9 @@ const SignIn: FC<Props> = (props) => {
                         value={password}
                         onChangeText={handleChange("password")}
                     />
-                    <AppButton active={!busy} title="Sign In" onPress={handleSubmit} />
+                    {/* <AppButton active ={!busy} title="Sign In" onPress={handleSubmit} /> */}
+                    <AppButton title="Sign In" onPress={handleSubmit} />
+
                     <FormDivider height={2} />
                     <FormNavigator
                         onLeftPress={() => navigate('ForgetPassword')}
