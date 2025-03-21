@@ -2,7 +2,7 @@ import FormInput from "@ui/Forminput";
 import { FC, useEffect, useState } from "react";
 import { View, StyleSheet, Text, Pressable, } from "react-native";
 import { FlatList, Image } from "react-native";
-
+import mime from 'mime'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import colors from "@utils/colors";
 import DatePicker from "@ui/DatePicker";
@@ -16,8 +16,10 @@ import { date } from "yup";
 import * as ImagePicker from 'expo-image-picker'
 import { showMessage } from "react-native-flash-message";
 import HorizontalImageList from "@views/HorizontalImageList";
-import { yupValidate } from "@utils/Validator";
+import { newProductSchema, yupValidate } from "@utils/Validator";
 import { newUserSchema } from "./SignUp";
+import useClient from "app/hooks/useClient";
+import { runAxiosAsync } from "app/api/runAxiosAsync";
 interface Props { }
 
 const defaultInfo = {
@@ -37,17 +39,165 @@ const NewListing: FC<Props> = (props) => {
 
     const [images, setImages] = useState<string[]>([]);
     const [selectedImage, setSelectedImages] = useState('');
+    const { authClient } = useClient()
 
     const { category, description, name, price, purchasingDate } = productInfo;
 
     const handleChange = (name: string) => (text: string) => {
         setProductInfo({ ...productInfo, [name]: text })
     };
-    const handleSubmit = async () => {
+    // const handleSubmit = async () => {
+    //     console.log(productInfo);
+    //     const { error } = await yupValidate(newProductSchema, productInfo)
+    //     if (error) return showMessage({ message: error, type: 'danger' })
+    //     console.log(productInfo);
+    //     const formData = new FormData();
+    //     type productInfoKeys = keyof typeof productInfo
+
+    //     for (let key in productInfo) {
+    //         const value = productInfo[key as productInfoKeys]
+    //         if (value instanceof Date)
+    //             formData.append(key, value.toISOString())
+    //         else
+    //             formData.append(key, value)
+
+    //         // appending imges
+    //         const newImages = images.map((img, index) => ({
+    //             name: 'image_' + index,
+    //             type: mime.getType(img),
+    //             uri: img
+    //         }))
+    //         for (let img of newImages) {
+    //             formData.append("images", img as any);
+    //         }
+    //         const res = await runAxiosAsync(
+    //             authClient.post('/product/list', formData, {
+    //                 headers: {
+    //                     'Content-Type': "multipart/form-data",
+    //                 }
+    //             })
+    //         )
+
+    //         console.log(res);
+
+    //         // formData.append("name", productInfo.name);
+    //         // formData.append("category", productInfo.category);
+    //         // formData.append("name", productInfo.name);
+    //         // formData.append("name", productInfo.name);
+    //     }
+
+    // }
+
+    const handleSubmit1 = async () => {
         console.log(productInfo);
-        const {error} = await yupValidate(newUserSchema, productInfo)
-        if(error) return showMessage({message: error})
-    }
+    
+        // Validate form data
+        const { error } = await yupValidate(newProductSchema, productInfo);
+        if (error) return showMessage({ message: error, type: 'danger' });
+    
+        // Create FormData
+        const formData = new FormData();
+        type productInfoKeys = keyof typeof productInfo;
+    
+        // Append product info fields to FormData
+        for (let key in productInfo) {
+            const value = productInfo[key as productInfoKeys];
+            if (value instanceof Date) {
+                formData.append(key, value.toISOString());
+            } else {
+                formData.append(key, value);
+            }
+        }
+    
+        // Append images to FormData
+        const newImages = images.map((img, index) => ({
+            name: `image_${index}`,
+            type: mime.getType(img) || 'image/jpeg',
+            uri: img,
+        }));
+    
+        for (let img of newImages) {
+            formData.append("images", img as any);
+        }
+    
+        try {
+            // Make the POST request
+            const res = await runAxiosAsync(
+                authClient.post('/product/list', formData, {
+                    headers: {
+                        'Content-Type': "multipart/form-data",
+                    },
+                })
+            );
+            console.log(res);
+            if (res.success) {
+                showMessage({ message: "Product listed successfully!", type: 'success' });
+            } else {
+                showMessage({ message: res.error || "Something went wrong", type: 'danger' });
+            }
+        } catch (error) {
+            console.error(error);
+            showMessage({ message: "Error submitting the product", type: 'danger' });
+        }
+    };
+    
+
+    const handleSubmit = async () => {
+        console.log("Submitting product info:", productInfo);
+    
+        try {
+            // Validate form data
+            const { error } = await yupValidate(newProductSchema, productInfo);
+            if (error) {
+                showMessage({ message: error, type: 'danger' });
+                return;
+            }
+    
+            // Create FormData
+            const formData = new FormData();
+    
+            // Append product info fields
+            Object.entries(productInfo).forEach(([key, value]) => {
+                if (value instanceof Date) {
+                    formData.append(key, value.toISOString());
+                } else {
+                    formData.append(key, value);
+                }
+            });
+    
+            // Append images to FormData
+            images.forEach((img, index) => {
+                const imageName = `image_${index}`;
+                const imageType = mime.getType(img) || 'image/jpeg';
+                formData.append('images', {
+                    name: imageName,
+                    type: imageType,
+                    uri: img,
+                }as any);
+            });
+    
+            // Send POST request
+            const res = await runAxiosAsync(
+                authClient.post('/product/list', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                })
+            );
+    
+            console.log("Response from API:", res);
+    
+            if (res?.success) {
+                showMessage({ message: "Product listed successfully!", type: 'success' });
+            } else {
+                const errorMsg = res?.error || "Something went wrong while listing the product.";
+                showMessage({ message: errorMsg, type: 'danger' });
+            }
+        } catch (error) {
+            console.error("Error during submission:", error);
+            showMessage({ message: "An error occurred while submitting the product.", type: 'danger' });
+        }
+    };
     const handleOnImageSelection = async () => {
         try {
             const { assets } = await ImagePicker.launchImageLibraryAsync({
@@ -125,6 +275,16 @@ const NewListing: FC<Props> = (props) => {
                     onChangeText={handleChange('description')}
                 />
                 <AppButton title="List New Product" onPress={handleSubmit} />
+                <OptionModal
+                    visible={showCategoryModal}
+                    onRequestClose={() => setShowCategoryModal(false)}
+                    option={categories.map((cat) => ({ id: cat.name, value: cat.name }))}
+                    renderItem={(item) => <Text style={styles.category}>{item.value}</Text>}
+                    onPress={(item) => {
+                        setProductInfo({ ...productInfo, category: item.value });
+                        setShowCategoryModal(false);
+                    }}
+                />
                 {/* Image Options  */}
                 <OptionModal
                     visible={showImageOptions}
@@ -152,13 +312,13 @@ const NewListing: FC<Props> = (props) => {
                     //     setProductInfo({ ...productInfo, category: item.name })}
                     onPress={(option) => {
                         if (option.id === 'remove') {
-                           const newImages = images.filter(img => img !== selectedImage)
-                           setImages([...newImages])
+                            const newImages = images.filter(img => img !== selectedImage)
+                            setImages([...newImages])
                         } else {
-                            
+
                         }
                         setShowImageOptions(false);
-                     }}
+                    }}
                 />
 
             </View>
