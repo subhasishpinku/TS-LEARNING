@@ -20,6 +20,7 @@ import { newProductSchema, yupValidate } from "@utils/Validator";
 import { newUserSchema } from "./SignUp";
 import useClient from "app/hooks/useClient";
 import { runAxiosAsync } from "app/api/runAxiosAsync";
+import LoadingSpinner from "@ui/LoadingSpinner";
 interface Props { }
 
 const defaultInfo = {
@@ -34,6 +35,7 @@ const imageOptions = [{ value: "Remove Image", id: 'remove' }]
 
 const NewListing: FC<Props> = (props) => {
     const [productInfo, setProductInfo] = useState({ ...defaultInfo })
+    const [busy, setBusy] = useState(false);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [showImageOptions, setShowImageOptions] = useState(false);
 
@@ -90,15 +92,15 @@ const NewListing: FC<Props> = (props) => {
 
     const handleSubmit1 = async () => {
         console.log(productInfo);
-    
+
         // Validate form data
         const { error } = await yupValidate(newProductSchema, productInfo);
         if (error) return showMessage({ message: error, type: 'danger' });
-    
+
         // Create FormData
         const formData = new FormData();
         type productInfoKeys = keyof typeof productInfo;
-    
+
         // Append product info fields to FormData
         for (let key in productInfo) {
             const value = productInfo[key as productInfoKeys];
@@ -108,18 +110,18 @@ const NewListing: FC<Props> = (props) => {
                 formData.append(key, value);
             }
         }
-    
+
         // Append images to FormData
         const newImages = images.map((img, index) => ({
             name: `image_${index}`,
             type: mime.getType(img) || 'image/jpeg',
             uri: img,
         }));
-    
+
         for (let img of newImages) {
             formData.append("images", img as any);
         }
-    
+
         try {
             // Make the POST request
             const res = await runAxiosAsync(
@@ -140,11 +142,11 @@ const NewListing: FC<Props> = (props) => {
             showMessage({ message: "Error submitting the product", type: 'danger' });
         }
     };
-    
+
 
     const handleSubmit = async () => {
         console.log("Submitting product info:", productInfo);
-    
+
         try {
             // Validate form data
             const { error } = await yupValidate(newProductSchema, productInfo);
@@ -152,10 +154,10 @@ const NewListing: FC<Props> = (props) => {
                 showMessage({ message: error, type: 'danger' });
                 return;
             }
-    
+            setBusy(true)
             // Create FormData
             const formData = new FormData();
-    
+
             // Append product info fields
             Object.entries(productInfo).forEach(([key, value]) => {
                 if (value instanceof Date) {
@@ -164,7 +166,7 @@ const NewListing: FC<Props> = (props) => {
                     formData.append(key, value);
                 }
             });
-    
+
             // Append images to FormData
             images.forEach((img, index) => {
                 const imageName = `image_${index}`;
@@ -173,24 +175,27 @@ const NewListing: FC<Props> = (props) => {
                     name: imageName,
                     type: imageType,
                     uri: img,
-                }as any);
+                } as any);
             });
-    
+
             // Send POST request
-            const res = await runAxiosAsync(
+            const res = await runAxiosAsync<{ message: string }>(
                 authClient.post('/product/list', formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
                 })
             );
-    
+            setBusy(false)
+
             console.log("Response from API:", res);
-    
-            if (res?.success) {
+
+            if (res) {
                 showMessage({ message: "Product listed successfully!", type: 'success' });
+                setProductInfo({...defaultInfo })
+                setImages([])
             } else {
-                const errorMsg = res?.error || "Something went wrong while listing the product.";
+                const errorMsg = "Something went wrong while listing the product.";
                 showMessage({ message: errorMsg, type: 'danger' });
             }
         } catch (error) {
@@ -274,7 +279,7 @@ const NewListing: FC<Props> = (props) => {
                     multiline numberOfLines={4}
                     onChangeText={handleChange('description')}
                 />
-                <AppButton title="List New Product" onPress={handleSubmit} />
+                <AppButton title="List Product" onPress={handleSubmit} />
                 <OptionModal
                     visible={showCategoryModal}
                     onRequestClose={() => setShowCategoryModal(false)}
@@ -322,6 +327,7 @@ const NewListing: FC<Props> = (props) => {
                 />
 
             </View>
+            <LoadingSpinner visible={busy} />
         </CustomKeyAvoidingView>
     )
 }

@@ -21,8 +21,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginVertical: 30
   }
-  
-
 });
 
 export default FormDivider;
